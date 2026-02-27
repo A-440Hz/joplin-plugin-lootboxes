@@ -1,0 +1,16 @@
+{
+	"manifest_version": 1,
+	"id": "joplin-plugin-lootboxes",
+	"app_min_version": "3.5",
+	"version": "1.0.0",
+	"name": "Lootboxes",
+	"description": "Accumulate lootboxes while completing todo notes",
+	"author": "Haotian Zeng",
+	"homepage_url": "",
+	"repository_url": "https://github.com/A-440Hz/joplin-plugin-lootboxes.git",
+	"keywords": ["lootbox", "todo"],
+	"categories": ["Appearance", "Productivity"],
+	"screenshots": [],
+	"icons": {},
+	"promo_tile": {}
+}
