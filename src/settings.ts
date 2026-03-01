@@ -39,19 +39,4 @@ export async function registerSettings() {
     }).then(() => {
         console.info('Registered numLootboxesEarned setting: ', joplin.settings.value(model.numLootboxesEarned));
     })
-
-    await joplin.settings.registerSettings({
-    [model.numScorableTodos]: {
-            value: 0,
-            type: SettingItemType.Int,
-            section: model.SECTION,
-            public: false,
-            label: 'Number of Scorable Todos',
-            step: 1,
-            minimum: 0,
-            storage: SettingStorage.Database, // explicitly persist this value across sessions
-        },
-    }).then(() => {
-        console.info('Registered numScorableTodos setting: ', joplin.settings.value(model.numScorableTodos));
-    })
 }

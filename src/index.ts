@@ -1,19 +1,15 @@
 import joplin from 'api';
 import { ToolbarButtonLocation } from 'api/types';
-import { model, refreshLootboxCount, handleNoteChange, handleSettingsChange } from './model';
+import { model, refreshLootboxCount, handleSettingsChange } from './model';
 import { registerSettings } from './settings';
 
 joplin.plugins.register({
 	onStart: async function() {
 		console.info('Todo Lootbox plugin started...');
 		await registerSettings();
-
 		console.info('Current number of earned lootboxes: ', await joplin.settings.value(model.numLootboxesEarned));
 		// set value to 0 if not set yet
 		// update as needed...
-
-		// listen for every todo change to check when the checkbox value is flipped
-		await joplin.workspace.onNoteChange(handleNoteChange);
 
 		// listen for settings changes to trigger conversion of scorable todos to lootboxes
 		await joplin.settings.onChange(handleSettingsChange);
@@ -24,9 +20,8 @@ joplin.plugins.register({
 			iconName: 'fas fa-music',
 			execute: async () => {
 				const numLootboxesEarned = await joplin.settings.value(model.numLootboxesEarned);
-				const numScorableTodos = await joplin.settings.value(model.numScorableTodos);
 				const numTodosToEarnLootbox = await joplin.settings.value(model.numTodosToEarnLootbox);
-				console.info('Current values (numLootboxesEarned, numScorableTodos, numTodosToEarnLootbox): ', { numLootboxesEarned, numScorableTodos, numTodosToEarnLootbox });
+				console.info('Current values (numLootboxesEarned, numTodosToEarnLootbox): ', { numLootboxesEarned, numTodosToEarnLootbox });
 			},
 		});
 		await joplin.views.toolbarButtons.create('checkValuesButton', 'checkValues', ToolbarButtonLocation.NoteToolbar);
