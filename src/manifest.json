@@ -9,7 +9,7 @@
 	"homepage_url": "",
 	"repository_url": "https://github.com/A-440Hz/joplin-plugin-lootboxes.git",
 	"keywords": ["lootbox", "todo"],
-	"categories": ["Appearance", "Productivity"],
+	"categories": ["appearance", "productivity"],
 	"screenshots": [],
 	"icons": {},
 	"promo_tile": {}
