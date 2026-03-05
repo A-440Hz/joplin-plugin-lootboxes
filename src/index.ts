@@ -2,6 +2,8 @@ import joplin from 'api';
 import { ToolbarButtonLocation } from 'api/types';
 import { model, refreshLootboxCount, handleSettingsChange } from './model';
 import { registerSettings } from './settings';
+import { initCacheMap, openOneLootbox } from './lootbox';
+import { verboseLogs } from './util';
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -13,6 +15,18 @@ joplin.plugins.register({
 
 		// listen for settings changes to trigger conversion of scorable todos to lootboxes
 		await joplin.settings.onChange(handleSettingsChange);
+
+		// initialize internal map of collectables from CDN
+		await initCacheMap();
+
+		// handle sync events
+		await joplin.workspace.onSyncStart(() => {
+			verboseLogs && console.info('Sync start detected');
+			// try fetching new CDN map each sync
+			initCacheMap();
+		});
+
+
 
 		await joplin.commands.register({
 			name: 'checkValues',
@@ -38,5 +52,18 @@ joplin.plugins.register({
 		});
 		await joplin.views.toolbarButtons.create('refreshLootboxCountButton', 'refreshLootboxCount', ToolbarButtonLocation.NoteToolbar);
 
+		await joplin.commands.register({
+			name: 'showUserLootboxes',
+			label: 'Show User Lootboxes',
+			iconName: 'fas fa-cubes',
+			execute: async () => {
+				const value = await joplin.settings.value(model.earnedLootboxesKey);
+				console.info('Current inventory: ' + JSON.stringify(value));
+				openOneLootbox();
+				const updatedValue = await joplin.settings.value(model.earnedLootboxesKey);
+				console.info('Updated inventory after opening one lootbox: ' + JSON.stringify(updatedValue));
+			},
+		});
+		await joplin.views.toolbarButtons.create('showUserLootboxesButton', 'showUserLootboxes', ToolbarButtonLocation.NoteToolbar);
 	},
 });
