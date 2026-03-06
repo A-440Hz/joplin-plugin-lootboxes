@@ -1,0 +1,231 @@
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	font-family: var(--joplin-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif);
+	background-color: var(--joplin-background-color, #ffffff);
+	color: var(--joplin-color, #333333);
+	overflow-x: hidden;
+}
+
+#lootbox-container {
+	padding: 20px;
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+/* Inventory View */
+#inventory-view {
+	text-align: center;
+}
+
+.lootbox-header {
+	margin-bottom: 24px;
+	padding: 20px;
+	background-color: var(--joplin-background-color3, #f5f5f5);
+	border-radius: 8px;
+	border: 1px solid var(--joplin-divider-color, #ddd);
+}
+
+#lootbox-count {
+	font-size: 48px;
+	font-weight: bold;
+	color: #f59e0b;
+	margin: 0 0 8px 0;
+	text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#lootbox-label {
+	font-size: 14px;
+	color: var(--joplin-color-faded, #666);
+	margin: 0;
+}
+
+.lootbox-buttons {
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+button {
+	padding: 12px 24px;
+	border-radius: 6px;
+	border: none;
+	font-weight: 600;
+	font-size: 14px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	background-color: #f59e0b;
+	color: white;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+button:hover:not(:disabled) {
+	background-color: #d97706;
+	box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+	transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+	transform: translateY(0);
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+button:disabled {
+	background-color: #9ca3af;
+	color: #6b7280;
+	cursor: not-allowed;
+	opacity: 0.5;
+	box-shadow: none;
+}
+
+/* Animation Container */
+#animation-container {
+	text-align: center;
+	padding: 30px 20px;
+	background-color: var(--joplin-background-color3, #f5f5f5);
+	border-radius: 8px;
+	border: 1px solid var(--joplin-divider-color, #ddd);
+	min-height: 400px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.animation-state {
+	width: 100%;
+}
+
+.animation-state h3 {
+	margin: 0 0 20px 0;
+	font-size: 24px;
+	color: var(--joplin-color, #333);
+}
+
+.lootbox-emoji {
+	font-size: 64px;
+	margin: 20px 0;
+	animation: bounce 1s ease-in-out infinite;
+	user-select: none;
+}
+
+@keyframes bounce {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-15px); }
+}
+
+#state-waiting p {
+	font-size: 16px;
+	color: var(--joplin-color-faded, #666);
+	margin: 10px 0;
+}
+
+#state-ready {
+	cursor: pointer;
+}
+
+#state-ready:hover .lootbox-emoji {
+	animation: bounce 0.5s ease-in-out infinite;
+}
+
+#preload-spinner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+#preload-spinner span {
+	font-size: 12px;
+	color: var(--joplin-color-faded, #666);
+}
+
+.spinner {
+	border: 3px solid var(--joplin-divider-color, #ddd);
+	border-top: 3px solid #f59e0b;
+	border-radius: 50%;
+	justify-self: center;
+	width: 32px;
+	height: 32px;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+/* Complete State */
+#collectable-display {
+	margin: 20px auto;
+	max-width: 300px;
+}
+
+#collectable-display img,
+#collectable-display video {
+	width: 100%;
+	max-width: 300px;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+	border: 3px solid #f59e0b;
+}
+
+#collectable-info {
+	background-color: var(--joplin-background-color, #fff);
+	padding: 16px;
+	border-radius: 6px;
+	margin-top: 20px;
+	text-align: left;
+	max-width: 400px;
+	margin-left: auto;
+	margin-right: auto;
+	border: 1px solid var(--joplin-divider-color, #ddd);
+}
+
+#collectable-info p {
+	margin: 8px 0;
+	font-size: 14px;
+}
+
+#collectable-info strong {
+	color: var(--joplin-color, #333);
+}
+
+/* Rarity colors */
+.rarity-common { color: #10b981; font-weight: bold; }
+.rarity-rare { color: #06b6d4; font-weight: bold; }
+.rarity-epic { color: #a855f7; font-weight: bold; }
+.rarity-legendary { color: #eab308; font-weight: bold; }
+
+#back-btn {
+	margin-top: 20px;
+	background-color: var(--joplin-background-color4, #e5e5e5);
+	color: var(--joplin-color, #333);
+	border: 1px solid var(--joplin-divider-color, #ddd);
+}
+
+#back-btn:hover {
+	background-color: var(--joplin-background-hover, #d5d5d5);
+}
+
+#state-complete {
+	cursor: default;
+}
+
+/* Error message */
+#error-message {
+	background-color: #fee;
+	border: 1px solid #fcc;
+	color: #c33;
+	padding: 12px;
+	border-radius: 6px;
+	margin-top: 20px;
+	display: none;
+}

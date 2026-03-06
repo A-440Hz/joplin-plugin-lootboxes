@@ -4,6 +4,7 @@ import { model, refreshLootboxCount, handleSettingsChange } from './model';
 import { registerSettings } from './settings';
 import { initCacheMap, openOneLootbox } from './lootbox';
 import { verboseLogs } from './util';
+import { createLootboxPanel, updateLootboxPanelCount } from './panel';
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -19,13 +20,15 @@ joplin.plugins.register({
 		// initialize internal map of collectables from CDN
 		await initCacheMap();
 
+		// create lootbox panel
+		const lootboxPanelHandle = await createLootboxPanel();
+
 		// handle sync events
 		await joplin.workspace.onSyncStart(() => {
 			verboseLogs && console.info('Sync start detected');
 			// try fetching new CDN map each sync
 			initCacheMap();
 		});
-
 
 
 		await joplin.commands.register({
@@ -48,6 +51,7 @@ joplin.plugins.register({
 				await refreshLootboxCount();
 				const value = await joplin.settings.value(model.numLootboxesEarned);
 				console.info('Current value is: ' + value);
+				await updateLootboxPanelCount();
 			},
 		});
 		await joplin.views.toolbarButtons.create('refreshLootboxCountButton', 'refreshLootboxCount', ToolbarButtonLocation.NoteToolbar);
@@ -65,5 +69,19 @@ joplin.plugins.register({
 			},
 		});
 		await joplin.views.toolbarButtons.create('showUserLootboxesButton', 'showUserLootboxes', ToolbarButtonLocation.NoteToolbar);
+
+		await joplin.commands.register({
+			name: 'toggleLootboxPanel',
+			label: 'Toggle Lootbox Panel',
+			iconName: 'fas fa-cubes',
+			execute: async () => {
+				const isOpen = (await joplin.views.panels.visible(lootboxPanelHandle)).valueOf()
+				await refreshLootboxCount()
+				// await updatePanelCount()
+				verboseLogs && console.log("count: ", await joplin.settings.value(model.numLootboxesEarned))
+				await joplin.views.panels.show(lootboxPanelHandle, !isOpen);				
+			},
+		});
+		await joplin.views.toolbarButtons.create('toggleLootboxPanelButton', 'toggleLootboxPanel', ToolbarButtonLocation.NoteToolbar);
 	},
 });

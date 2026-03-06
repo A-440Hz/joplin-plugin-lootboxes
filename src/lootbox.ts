@@ -1,9 +1,8 @@
 import joplin from "api";
 import { model } from "./model";
 import { verboseLogs, fallbackMap } from "./util";
-import { error } from "console";
 
-const cdnDomain = 'https://raw.githubusercontent.com/A-440Hz/squids/main/'
+export const cdnDomain = 'https://raw.githubusercontent.com/A-440Hz/squids/main/'
 const mapPath = 'map.json'
 let cacheMap: LootboxMap = {};
 
@@ -18,8 +17,11 @@ export interface LootboxData {
     Filename: string;
 }
 
-export interface LootboxWithCount extends LootboxData {
-    Count: number;
+export interface OpenedLootbox {
+    col: {
+        Collectable: LootboxData;
+        Quantity: number;
+    }
 }
 
 export interface LootboxMap {
@@ -109,18 +111,18 @@ async function updateStorageMap(): Promise<LootboxMap> {
 function getLootboxByID(id: number): LootboxData {
     const n = Object.keys(cacheMap).length
     if (id > n) {
-        throw error(`requested lootbox id ${id} exceeds max len ${n} of cache map`)
+        throw new Error(`requested lootbox id ${id} exceeds max len ${n} of cache map`)
     }
     const lootbox = cacheMap[id.toString()];
     if (!lootbox) {
-        throw error(`lootbox with id ${id} not found in cache map`);
+        throw new Error(`lootbox with id ${id} not found in cache map`);
     }
     return lootbox;
 }
 
-export async function openOneLootbox(): Promise<void> {
+export async function openOneLootbox(): Promise<OpenedLootbox> {
     const n = Object.keys(cacheMap).length
-    const randomId = Math.floor(Math.random() * n) + 1; // random id between 1 and n inclusive
+    const randomId = crypto.getRandomValues(new Uint32Array(1))[0] % n + 1;
     let inventory = {} as UserLootboxes;
     let numBoxes = 0;
     try {
@@ -128,19 +130,36 @@ export async function openOneLootbox(): Promise<void> {
         numBoxes = await joplin.settings.value(model.numLootboxesEarned) as number;
     } catch (err) {
         // exit early if unable to retrieve current inventory to avoid overwriting a valid inventory with the fallback map in case of an error
-        throw error('Error retrieving user-earned lootboxes from settings: ' + err);
+        throw new Error('Error retrieving user-earned lootboxes from settings: ' + err);
+    }
+
+    // Validate inventory
+    if (!inventory || typeof inventory !== 'object') {
+        inventory = {};
     }
 
     if (numBoxes <= 0) {
-        throw error('No lootboxes available to open. Current number of earned lootboxes: ' + numBoxes);
-    } 
+        throw new Error('No lootboxes available to open. Current number of earned lootboxes: ' + numBoxes);
+    }
+
+    const randomIdStr = randomId.toString();
     verboseLogs && console.log(`Opening lootbox with id ${randomId}...`, getLootboxByID(randomId), 'Current inventory before opening:', inventory);
-    inventory[randomId] = (inventory[randomId] || 0) + 1; // increment count of this lootbox in inventory
+    inventory[randomIdStr] = (inventory[randomIdStr] || 0) + 1; // increment count of this lootbox in inventory
     verboseLogs && console.log('Updated inventory after opening:', inventory);
+
+    const lootboxData = getLootboxByID(randomId);
+
     try {
         await joplin.settings.setValue(model.earnedLootboxesKey, inventory);
         await joplin.settings.setValue(model.numLootboxesEarned, numBoxes - 1); // decrement available lootboxes by 1
     } catch (err) {
         console.error('Error updating user-earned lootboxes in settings:', err);
     }
+
+    return {
+        col: {
+            Collectable: lootboxData,
+            Quantity: inventory[randomIdStr]
+        }
+    };
 }
