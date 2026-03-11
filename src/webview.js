@@ -200,15 +200,27 @@
 		var cdnUrl = 'https://raw.githubusercontent.com/A-440Hz/squids/main/';
 		var mediaUrl = cdnUrl + collectable.Filename;
 
-		// Show appropriate media type
+		// Show appropriate media type and add click handler for magnification
 		if (collectable.Type === 'image') {
 			elements.collectableImage.src = mediaUrl;
 			elements.collectableImage.style.display = 'block';
+			elements.collectableImage.style.cursor = 'pointer';
 			elements.collectableVideo.style.display = 'none';
+
+			// Remove old listener if any, then add new one
+			elements.collectableImage.onclick = function() {
+				magnifyCollectable(collectable);
+			};
 		} else {
 			elements.collectableVideo.src = mediaUrl;
 			elements.collectableVideo.style.display = 'block';
+			elements.collectableVideo.style.cursor = 'pointer';
 			elements.collectableImage.style.display = 'none';
+
+			// Remove old listener if any, then add new one
+			elements.collectableVideo.onclick = function() {
+				magnifyCollectable(collectable);
+			};
 		}
 
 		// Update info
@@ -221,6 +233,20 @@
 		elements.colRarity.className = getRarityClass(collectable.Value);
 
 		elements.colQuantity.textContent = quantity;
+	}
+
+	function magnifyCollectable(collectable) {
+		console.log('Requesting magnified view for:', collectable.Name);
+		webviewApi.postMessage({
+			message: 'magnifyCollectable',
+			collectable: collectable
+		})
+		.then(function(response) {
+			console.log('Magnify dialog response:', response);
+		})
+		.catch(function(err) {
+			console.error('Error showing magnified view:', err);
+		});
 	}
 
 	function showState(state) {

@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { ViewHandle } from 'api/types';
-import { openOneLootbox } from './lootbox';
+import { openOneLootbox, LootboxData, cdnDomain } from './lootbox';
 import { model } from './model';
 import { verboseLogs } from './util';
 
@@ -146,6 +146,11 @@ function setupLootboxMessageHandler(): void {
 					const newCount = await joplin.settings.value(model.numLootboxesEarned);
 					return { count: newCount };
 
+				case 'magnifyCollectable':
+					verboseLogs && console.log("Handling 'magnifyCollectable' message");
+					await showMagnifiedDialog(message.collectable);
+					return { success: true };
+
 				default:
 					console.warn("Unknown message type:", message.message);
 					return { error: 'Unknown message type' };
@@ -155,4 +160,106 @@ function setupLootboxMessageHandler(): void {
 			return { error: err.message || 'Internal error' };
 		}
 	});
+}
+
+async function showMagnifiedDialog(collectable: LootboxData): Promise<void> {
+	// Generate unique ID for each dialog invocation (dialogs persist after closing and cannot be reopened)
+	const randomId = Math.random().toString(36).substring(2, 15);
+	const dialogHandle = await joplin.views.dialogs.create('magnifiedCollectable_' + randomId);
+
+	const mediaUrl = cdnDomain + collectable.Filename;
+
+	// Format name: "tiny_squid" → "Tiny Squid"
+	const formattedName = collectable.Name.replace(/_/g, ' ')
+		.split(' ')
+		.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(' ');
+
+	// Determine rarity name and CSS class
+	const rarityNameMap: { [key: string]: string } = {
+		'C': 'Common',
+		'B': 'Rare',
+		'A': 'Epic',
+		'S': 'Legendary'
+	};
+	const rarityName = rarityNameMap[collectable.Value] || 'Unknown';
+	const rarityClassMap: { [key: string]: string } = {
+		'C': 'rarity-common',
+		'B': 'rarity-rare',
+		'A': 'rarity-epic',
+		'S': 'rarity-legendary'
+	};
+	const rarityClass = rarityClassMap[collectable.Value] || '';
+
+	const html = `
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<style onload=\"document.getElementById('autofocus-target').focus()\" src=\"#\">
+				body {
+					margin: 0;
+					padding: 0;
+					background: #000;
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+					min-height: 400px;
+					cursor: pointer;
+				}
+				.dialog-container {
+					text-align: center;
+					padding: 20px;
+					max-width: 90vw;
+				}
+				h2 {
+					color: white;
+					font-size: 32px;
+					margin: 0 0 10px 0;
+					font-weight: bold;
+				}
+				.rarity {
+					font-size: 18px;
+					font-weight: bold;
+					margin-bottom: 20px;
+				}
+				img, video {
+					/* Show natural size for magnified view */
+					max-width: 85vw;
+					max-height: 80vh;
+					width: auto;
+					height: auto;
+					border-radius: 12px;
+					box-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
+					border: 4px solid #f59e0b;
+				}
+			</style>
+		</head>
+		<body>
+		<div class="dialog-container" id="dialog-content" style="pointer-events: none;">
+		<h2>${formattedName}</h2>
+		<p class="rarity ${rarityClass}">${rarityName}</p>
+		${collectable.Type === 'image'
+			? `<img src="${mediaUrl}" alt="${formattedName}" />`
+			: `<video src="${mediaUrl}" autoplay loop muted playsinline></video>`
+		}
+		</div>
+		</body>
+		</html>
+		`;
+	// workaround for dialog focus issue: from https://github.com/alondmnt/plugin-templates/blob/master/src/utils/dialogHelpers.ts
+
+	await joplin.views.dialogs.setHtml(dialogHandle, html);
+
+	// Load shared CSS file for rarity colors
+	await joplin.views.dialogs.addScript(dialogHandle, './webview.css');
+
+	// Disable fit-to-content so dialog uses full 90vw × 80vh
+	await joplin.views.dialogs.setFitToContent(dialogHandle, false);
+
+	await joplin.views.dialogs.setButtons(dialogHandle, [
+		{ id: 'close', title: 'Close' }
+	]);
+
+	await joplin.views.dialogs.open(dialogHandle);
 }
