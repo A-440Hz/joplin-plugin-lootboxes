@@ -1,6 +1,8 @@
 import joplin from "api";
 import { SettingItemType, SettingStorage } from "api/types";
 import { model } from "./model";
+import {UserLootboxes} from "./lootbox";
+import { fallbackMap } from "./util";
 
 export async function registerSettings() {
     await joplin.settings.registerSection(model.SECTION, {
@@ -38,5 +40,31 @@ export async function registerSettings() {
         },
     }).then(() => {
         console.info('Registered numLootboxesEarned setting: ', joplin.settings.value(model.numLootboxesEarned));
+    })
+
+    await joplin.settings.registerSettings({
+        [model.mapStorageKey]: {
+            value: fallbackMap,
+            type: SettingItemType.Object,
+            section: model.SECTION,
+            public: false,
+            label: 'Internal Collectables Map',
+            storage: SettingStorage.Database, // explicitly persist this value across sessions
+        },
+    }).then(() => {
+        console.info('Registered internal collectables map setting: ', joplin.settings.value(model.mapStorageKey));
+    })
+
+    await joplin.settings.registerSettings({
+        [model.earnedLootboxesKey]: {
+            value: {} as UserLootboxes,
+            type: SettingItemType.Object,
+            section: model.SECTION,
+            public: false,
+            label: 'User-Earned Lootboxes',
+            storage: SettingStorage.Database, // explicitly persist this value across sessions
+        },
+    }).then(() => {
+        console.info('Registered user-earned lootboxes setting: ', joplin.settings.value(model.earnedLootboxesKey));
     })
 }
