@@ -40,21 +40,28 @@ To test the plugin in Joplin:
 - **src/lootbox.ts** - Collectable map management and lootbox opening:
   - `initCacheMap()` - Fetches map.json from CDN or uses cached/fallback version
   - `openOneLootbox()` - Returns opened lootbox data with collectable and quantity
-  - Exports `OpenedLootbox` interface for type safety
+  - `openTenLootboxes()` - Opens 10 lootboxes sequentially, returns array of results
+  - Exports `OpenedLootbox` interface and `cdnDomain` constant for type safety
 - **src/panel.ts** - Panel setup and message handler:
   - `createLootboxPanel()` - Creates panel, loads HTML/CSS/JS, registers message handler
   - `updateLootboxPanelCount()` - Sends count updates to webview
-  - `setupLootboxMessageHandler()` - Handles messages from webview (ready, openOne, openTen, refreshCount)
+  - `setupLootboxMessageHandler()` - Handles messages from webview (ready, openOne, openTen, refreshCount, magnifyCollectable)
+  - `showMagnifiedDialog()` - Creates Joplin dialog with full-size collectable image/video
 - **src/util.ts** - Utilities and fallback collectable map
 
 **Frontend (Webview):**
 - **src/webview.js** - Vanilla JavaScript for panel UI logic:
-  - State management (inventory, waiting, ready, animating, complete)
+  - State management (inventory, waiting, ready, animating, complete, ten-results)
+  - Unified `createCollectableElement()` function for creating grid items and large displays
   - DOM manipulation and event handlers
   - Message passing with plugin via `webviewApi.postMessage()`
-  - Image/video preloading with progress indicators
+  - Image/video preloading with progress indicators and fallback placeholders
   - Animation sequences (600ms transitions)
+  - Magnified dialog view (clicks media to open full-size in Joplin dialog)
 - **src/webview.css** - All panel styles using Joplin CSS variables for theme compatibility
+  - Responsive grid breakpoints (3/4/5 columns based on width)
+  - Flexbox layout for centered incomplete rows
+  - CSS variable `--panel-min-width` for consistent sizing
 
 ### Attribution System
 
@@ -77,6 +84,7 @@ The plugin uses a tag-based attribution system to track which completed todos ha
 Settings are stored in Joplin's database:
 - `numTodosToEarnLootbox` (public, default: 1) - Conversion rate
 - `numLootboxesEarned` (private) - Current lootbox count
+- `earnedLootboxesKey` (private) - User inventory: `{ "1": 3, "2": 1, "5": 2 }` (lootbox ID → quantity owned)
 - `collectablesMap` (private) - Cached collectable data from CDN
 
 ## Reference Files (Do Not Modify)
@@ -132,7 +140,7 @@ joplin.views.panels.onMessage(handle, async (message) => {
 });
 ```
 
-**UI State Flow:**
+**UI State Flow (Open 1):**
 1. User clicks "Open 1" → webview sends `{message: 'openOne'}`
 2. Plugin calls `openOneLootbox()` → returns lootbox data
 3. Plugin returns `{result: {...}}` → webview receives response
@@ -140,9 +148,47 @@ joplin.views.panels.onMessage(handle, async (message) => {
 5. When loaded → progresses to "ready" state (clickable)
 6. User clicks → "animating" state (600ms)
 7. → "complete" state (shows collectable details)
+8. Click media → opens magnified dialog with full-size image/video
+
+**UI State Flow (Open 10):**
+1. User clicks "Open 10" → webview sends `{message: 'openTen'}`
+2. Plugin calls `openTenLootboxes()` → opens 10 sequentially
+3. Plugin returns `{result: [array of 10 results]}` → webview receives response
+4. Webview shows "waiting" state with spinner → preloads all media
+5. Pre-creates all grid items using `createCollectableElement()`
+6. When all loaded → progresses to "ready" state (clickable)
+7. User clicks → "ten-results" state (shows 5×2 grid of collectables)
+8. Click any grid item → opens magnified dialog
 
 ### Current Branch: hz-panel-layout
 This branch implements the panel UI for viewing and opening lootboxes. Both the scoring/attribution system and panel display are complete and functional.
+
+### Important Implementation Patterns
+
+**Unified Element Creation:**
+- `createCollectableElement(collectable, quantity, 'grid', clickable)` creates both grid items and large displays
+- `createMediaElement(collectable, mediaUrl, useExistingElements)` handles img/video creation with error fallbacks
+- Reusing these functions prevents code duplication and ensures consistent behavior
+
+**Preloading Strategy:**
+- Single lootbox: Preloads one image/video, shows spinner until ready
+- Ten lootboxes: Pre-creates all grid items (which creates media elements), tracks when all load
+- **Critical:** `markAsReady()` checks `currentState === 'waiting'` before transitioning to prevent race conditions where late-loading media regresses the state after user has already proceeded
+
+**State Management Gotchas:**
+- States are dynamically configured (`configureWaitingState()`, `configureReadyState()`) to reuse HTML elements for both "open 1" and "open 10" flows
+- `openMode` variable tracks which flow is active ('one' or 'ten')
+- Always check current state before transitioning to prevent stale event handlers from overriding
+
+**Media Error Handling:**
+- Images: `onerror` sets `src` to SVG placeholder with "?" icon
+- Videos (grid): `poster` attribute shows placeholder before/during load
+- Videos (large display): On error, hides video and shows placeholder image instead
+
+**CSS Responsive Grid:**
+- Uses Flexbox instead of CSS Grid to center incomplete rows
+- `flex: 0 0 calc((100% - gaps) / columns)` for precise column widths
+- Breakpoints: 3 columns (≤500px), 4 columns (501-700px), 5 columns (≥701px)
 
 ## Common Tasks
 
@@ -162,9 +208,16 @@ This branch implements the panel UI for viewing and opening lootboxes. Both the 
 1. Complete some todo notes in Joplin
 2. Click "Refresh Lootbox Count" to earn lootboxes
 3. Open the panel (View > Change application layout)
-4. Click "Open 1" to open a lootbox
-5. Watch the animation: waiting → ready → animating → complete
-6. Click "Open More Lootboxes" to return to inventory
+4. **Test "Open 1":**
+   - Click "Open 1" to open a lootbox
+   - Watch the animation: waiting → ready → animating → complete
+   - Click the collectable image/video to open magnified view
+   - Click "Open More Lootboxes" to return to inventory
+5. **Test "Open 10"** (requires 10+ lootboxes):
+   - Click "Open 10" to open ten lootboxes
+   - Watch: waiting (with spinner) → ready → ten-results grid (5×2 layout)
+   - Click any grid item to open magnified view
+   - Click "Open More Lootboxes" to return to inventory
 
 ### Debugging
 - Enable verbose logging by setting `verboseLogs = true` in src/util.ts
@@ -175,6 +228,13 @@ This branch implements the panel UI for viewing and opening lootboxes. Both the 
   - "Webview received message:" - Webview receiving fire-and-forget messages
   - "Sending openOne message..." - Webview sending request to plugin
   - "Video preloaded successfully" - Media preload completion
+  - "Preloaded X/10 collectables" - Multi-lootbox preload progress
+
+**Common Issues:**
+- **State regressing unexpectedly:** Check if late-loading media handlers are calling `markAsReady()` after user has already proceeded. Solution: `markAsReady()` should check `currentState === 'waiting'`
+- **"Open 10" shows wrong state:** Ensure `startAnimation()` doesn't have logic for both 'one' and 'ten' modes, or use `openMode` to branch correctly
+- **Panel width changing:** All views should use consistent `min-width` (check CSS variable or hardcoded values)
+- **Media not loading:** Check CDN URL, test with placeholder fallback, verify `onerror` handlers are attached
 
 ## Plugin Distribution
 
