@@ -72,20 +72,20 @@ function getLootboxHtmlBody(): string {
 
 			<!-- Animation Container (hidden by default) -->
 			<div id="animation-container" style="display: none;">
-				<!-- Waiting State -->
+				<!-- Waiting State (loading/preloading) -->
 				<div id="state-waiting" class="animation-state">
-					<h3>Preparing your lootbox...</h3>
-					<div class="lootbox-emoji">📦</div>
+					<h3 id="waiting-title">Preparing your lootbox...</h3>
+					<div id="waiting-emoji" class="lootbox-emoji">📦</div>
 					<div id="preload-spinner" style="display: none;">
 						<div class="spinner"></div>
 					</div>
 				</div>
 
-				<!-- Ready State -->
+				<!-- Ready State (click to proceed) -->
 				<div id="state-ready" class="animation-state" style="display: none;">
-					<h3>Ready to Open!</h3>
-					<div class="lootbox-emoji">📦</div>
-					<p>Click to open your lootbox</p>
+					<h3 id="ready-title">Ready to Open!</h3>
+					<div id="ready-emoji" class="lootbox-emoji">📦</div>
+					<p id="ready-instruction">Click to open your lootbox</p>
 				</div>
 
 				<!-- Animating State -->

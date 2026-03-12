@@ -2,6 +2,10 @@
 	box-sizing: border-box;
 }
 
+:root {
+	--panel-min-width: 300px;
+}
+
 body {
 	margin: 0;
 	padding: 0;
@@ -20,7 +24,7 @@ body {
 /* Inventory View */
 #inventory-view {
 	text-align: center;
-	min-width: 300px;
+	min-width: var(--panel-min-width);
 }
 
 .lootbox-header {
@@ -92,7 +96,7 @@ button:disabled {
 	border-radius: 8px;
 	border: 1px solid var(--joplin-divider-color, #ddd);
 	min-height: 400px;
-	min-width: 300px;
+	min-width: var(--panel-min-width);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -235,7 +239,7 @@ button:disabled {
 /* Ten Results View */
 #ten-results-view {
 	text-align: center;
-	min-width: 400px;
+	min-width: var(--panel-min-width);
 }
 
 #ten-results-view h3 {
@@ -245,19 +249,34 @@ button:disabled {
 }
 
 #ten-results-grid {
-	display: grid;
-	grid-template-columns: repeat(5, 1fr);
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
 	gap: 12px;
 	margin-bottom: 20px;
 }
 
 .grid-item {
+	flex: 0 0 calc((100% - 4 * 12px) / 5); /* 5 columns with gaps */
 	background-color: var(--joplin-background-color3, #f5f5f5);
 	border-radius: 6px;
 	padding: 10px;
 	border: 2px solid var(--joplin-divider-color, #ddd);
 	cursor: pointer;
 	transition: all 0.2s ease;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 500px) {
+	.grid-item {
+		flex: 0 0 calc((100% - 2 * 12px) / 3); /* 3 columns */
+	}
+}
+
+@media (min-width: 501px) and (max-width: 700px) {
+	.grid-item {
+		flex: 0 0 calc((100% - 3 * 12px) / 4); /* 4 columns */
+	}
 }
 
 .grid-item:hover {

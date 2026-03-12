@@ -1,8 +1,12 @@
 (function() {
 	var currentState = 'inventory';
 	var currentResult = null;
+	var currentTenResults = null;
+	var preloadedGridItems = [];
 	var isPreloaded = false;
+	var openMode = 'one'; // 'one' or 'ten'
 	var cdnDomain = 'https://raw.githubusercontent.com/A-440Hz/squids/main/';
+	var mediaPlaceholder = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="%23999"><rect width="24" height="24" fill="%23f5f5f5"/><text x="12" y="12" text-anchor="middle" dy=".3em" fill="%23999">?</text></svg>';
 
 	// DOM elements
 	var elements = {
@@ -16,7 +20,9 @@
 		stateReady: document.getElementById('state-ready'),
 		stateAnimating: document.getElementById('state-animating'),
 		stateComplete: document.getElementById('state-complete'),
+		waitingTitle: document.getElementById('waiting-title'),
 		preloadSpinner: document.getElementById('preload-spinner'),
+		readyInstruction: document.getElementById('ready-instruction'),
 		collectableImage: document.getElementById('collectable-image'),
 		collectableVideo: document.getElementById('collectable-video'),
 		colName: document.getElementById('col-name'),
@@ -90,7 +96,7 @@
 			.then(function(response) {
 				console.log('Received openTen response:', response);
 				if (response && response.result) {
-					displayTenResults(response.result);
+					handleOpenTenResult(response.result);
 				} else if (response && response.error) {
 					showError(response.error);
 				}
@@ -125,14 +131,42 @@
 		elements.openTenBtn.disabled = count < 10;
 	}
 
+	/**
+	 * Configures the waiting state text and appearance
+	 */
+	function configureWaitingState(title) {
+		elements.waitingTitle.textContent = title;
+	}
+
+	/**
+	 * Configures the ready state text and appearance
+	 */
+	function configureReadyState(instruction) {
+		elements.readyInstruction.textContent = instruction;
+	}
+
 	function handleOpenResult(result) {
 		console.log('Handling open result:', result);
 		currentResult = result;
 		currentState = 'waiting';
 		isPreloaded = false;
+		openMode = 'one';
 
+		configureWaitingState('Preparing your lootbox...');
 		showState('waiting');
 		preloadCollectable(result);
+	}
+
+	function handleOpenTenResult(results) {
+		console.log('Handling open 10 result:', results);
+		currentTenResults = results;
+		currentState = 'waiting';
+		isPreloaded = false;
+		openMode = 'ten';
+
+		configureWaitingState('Preparing your lootboxes...');
+		showState('waiting');
+		preloadCollectables(results);
 	}
 
 	function preloadCollectable(result) {
@@ -180,11 +214,78 @@
 		}
 	}
 
+	/**
+	 * Preloads media for multiple collectables by pre-creating grid items
+	 */
+	function preloadCollectables(results) {
+		if (!results || results.length === 0) {
+			markAsReady();
+			return;
+		}
+
+		elements.preloadSpinner.style.display = 'flex';
+		preloadedGridItems = [];
+
+		var totalItems = results.length;
+		var loadedCount = 0;
+
+		function checkAllLoaded() {
+			loadedCount++;
+			console.log('Preloaded ' + loadedCount + '/' + totalItems + ' collectables');
+			if (loadedCount >= totalItems) {
+				markAsReady();
+			}
+		}
+
+		// Create all grid items (which creates and loads media elements)
+		for (var i = 0; i < results.length; i++) {
+			var result = results[i];
+			var collectable = result.col && result.col.Collectable;
+			var quantity = result.col && result.col.Quantity;
+
+			if (!collectable) {
+				checkAllLoaded();
+				continue;
+			}
+
+			// Create grid item with media
+			var gridItem = createCollectableElement(collectable, quantity, 'grid', true);
+			preloadedGridItems.push(gridItem);
+
+			// Find the media element inside and add load handler
+			var mediaElement = gridItem.querySelector('img, video');
+			if (mediaElement) {
+				if (mediaElement.tagName === 'IMG') {
+					mediaElement.onload = checkAllLoaded;
+					mediaElement.onerror = checkAllLoaded;
+				} else if (mediaElement.tagName === 'VIDEO') {
+					mediaElement.addEventListener('canplay', checkAllLoaded);
+					mediaElement.addEventListener('error', checkAllLoaded);
+				}
+			} else {
+				checkAllLoaded();
+			}
+		}
+	}
+
 	function markAsReady() {
 		isPreloaded = true;
 		elements.preloadSpinner.style.display = 'none';
-		currentState = 'ready';
-		showState('ready');
+
+		// Only transition to ready state if we're still in waiting state
+		// (prevents race condition where slow media loads after user has already proceeded)
+		if (currentState === 'waiting') {
+			currentState = 'ready';
+
+			// Configure ready state based on mode
+			if (openMode === 'one') {
+				configureReadyState('Click to open your lootbox');
+			} else if (openMode === 'ten') {
+				configureReadyState('Click to view your lootboxes');
+			}
+
+			showState('ready');
+		}
 	}
 
 	function startAnimation() {
@@ -194,9 +295,11 @@
 		showState('animating');
 
 		setTimeout(function() {
-			currentState = 'complete';
-			displayResult();
-			showState('complete');
+			if (openMode === 'one') {
+				displayResult();
+			} else if (openMode === 'ten') {
+				displayTenResults(currentTenResults);
+			}
 		}, 600);
 	}
 
@@ -209,17 +312,29 @@
 			if (useExistingElements) {
 				mediaElement = elements.collectableImage;
 				mediaElement.src = mediaUrl;
+				mediaElement.onerror = function() {
+					mediaElement.src = mediaPlaceholder;
+				};
 				mediaElement.style.display = 'block';
 				elements.collectableVideo.style.display = 'none';
 			} else {
 				mediaElement = document.createElement('img');
 				mediaElement.src = mediaUrl;
 				mediaElement.alt = collectable.Name;
+				mediaElement.onerror = function() {
+					mediaElement.src = mediaPlaceholder;
+				};
 			}
 		} else {
 			if (useExistingElements) {
 				mediaElement = elements.collectableVideo;
 				mediaElement.src = mediaUrl;
+				mediaElement.addEventListener('error', function() {
+					// On video error, switch to showing placeholder image
+					elements.collectableVideo.style.display = 'none';
+					elements.collectableImage.src = mediaPlaceholder;
+					elements.collectableImage.style.display = 'block';
+				});
 				mediaElement.style.display = 'block';
 				elements.collectableImage.style.display = 'none';
 			} else {
@@ -229,6 +344,8 @@
 				mediaElement.loop = true;
 				mediaElement.muted = true;
 				mediaElement.setAttribute('playsinline', '');
+				// For grid videos that fail, show poster with placeholder
+				mediaElement.poster = mediaPlaceholder;
 			}
 		}
 		return mediaElement;
@@ -277,6 +394,7 @@
 
 	function displayResult() {
 		if (!currentResult || !currentResult.col) return;
+		currentState = 'complete';
 
 		var collectable = currentResult.col.Collectable;
 		var quantity = currentResult.col.Quantity;
@@ -299,6 +417,7 @@
 		elements.colRarity.className = getRarityClass(collectable.Value);
 
 		elements.colQuantity.textContent = quantity;
+		showState('complete');
 	}
 
 	function magnifyCollectable(collectable) {
@@ -322,16 +441,22 @@
 		// Clear the grid
 		elements.tenResultsGrid.innerHTML = '';
 
-		// Populate grid with results using unified element creator
-		for (var i = 0; i < results.length; i++) {
-			var result = results[i];
-			var collectable = result.col.Collectable;
-			var quantity = result.col.Quantity;
-
-			var gridItem = createCollectableElement(collectable, quantity, 'grid', true);
-			elements.tenResultsGrid.appendChild(gridItem);
+		// Use preloaded grid items if available, otherwise create them
+		if (preloadedGridItems.length > 0) {
+			// Append preloaded items
+			for (var i = 0; i < preloadedGridItems.length; i++) {
+				elements.tenResultsGrid.appendChild(preloadedGridItems[i]);
+			}
+		} else {
+			// Fallback: create items on the fly
+			for (var i = 0; i < results.length; i++) {
+				var result = results[i];
+				var collectable = result.col.Collectable;
+				var quantity = result.col.Quantity;
+				var gridItem = createCollectableElement(collectable, quantity, 'grid', true);
+				elements.tenResultsGrid.appendChild(gridItem);
+			}
 		}
-
 		showState('ten-results');
 	}
 
