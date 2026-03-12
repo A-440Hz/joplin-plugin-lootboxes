@@ -57,27 +57,13 @@ joplin.plugins.register({
 		await joplin.views.toolbarButtons.create('refreshLootboxCountButton', 'refreshLootboxCount', ToolbarButtonLocation.NoteToolbar);
 
 		await joplin.commands.register({
-			name: 'showUserLootboxes',
-			label: 'Show User Lootboxes',
-			iconName: 'fas fa-cubes',
-			execute: async () => {
-				const value = await joplin.settings.value(model.earnedLootboxesKey);
-				console.info('Current inventory: ' + JSON.stringify(value));
-				openOneLootbox();
-				const updatedValue = await joplin.settings.value(model.earnedLootboxesKey);
-				console.info('Updated inventory after opening one lootbox: ' + JSON.stringify(updatedValue));
-			},
-		});
-		await joplin.views.toolbarButtons.create('showUserLootboxesButton', 'showUserLootboxes', ToolbarButtonLocation.NoteToolbar);
-
-		await joplin.commands.register({
 			name: 'toggleLootboxPanel',
 			label: 'Toggle Lootbox Panel',
 			iconName: 'fas fa-cubes',
 			execute: async () => {
 				const isOpen = (await joplin.views.panels.visible(lootboxPanelHandle)).valueOf()
 				await refreshLootboxCount()
-				// await updatePanelCount()
+				await updateLootboxPanelCount()
 				verboseLogs && console.log("count: ", await joplin.settings.value(model.numLootboxesEarned))
 				await joplin.views.panels.show(lootboxPanelHandle, !isOpen);				
 			},

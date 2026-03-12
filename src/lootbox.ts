@@ -163,3 +163,33 @@ export async function openOneLootbox(): Promise<OpenedLootbox> {
         }
     };
 }
+
+export async function openTenLootboxes(): Promise<OpenedLootbox[]> {
+    const opened: OpenedLootbox[] = [];
+
+    // validate user has >10 boxes
+    let numBoxes = 0;
+    try {
+        numBoxes = await joplin.settings.value(model.numLootboxesEarned) as number;
+    } catch (err) {
+        // exit early if unable to retrieve current inventory to avoid overwriting a valid inventory with the fallback map in case of an error
+        throw new Error('Error retrieving user-earned lootboxes from settings: ' + err);
+    }
+    if (numBoxes <= 0) {
+        throw new Error('No lootboxes available to open. Current number of earned lootboxes: ' + numBoxes);
+    }
+
+    try {
+        // Open one lootbox at a time so inventory and earned count remain consistent.
+        for (let i = 0; i < 10; i++) {
+            const lootbox = await openOneLootbox();
+            opened.push(lootbox);
+        }
+
+        return opened;
+    } catch (err) {
+        console.error('Error opening 10 lootboxes:', err);
+        // If partial open succeeded, return what we have so the UI can reflect progress.
+        return opened;
+    }
+}

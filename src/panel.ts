@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { ViewHandle } from 'api/types';
-import { openOneLootbox, LootboxData, cdnDomain } from './lootbox';
+import { openOneLootbox, openTenLootboxes, LootboxData, cdnDomain } from './lootbox';
 import { model } from './model';
 import { verboseLogs } from './util';
 
@@ -110,6 +110,15 @@ function getLootboxHtmlBody(): string {
 					<button id="back-btn">Open More Lootboxes</button>
 				</div>
 			</div>
+
+			<!-- Ten Results View (hidden by default) -->
+			<div id="ten-results-view" style="display: none;">
+				<h3>You Opened 10 Lootboxes!</h3>
+				<div id="ten-results-grid">
+					<!-- Grid items will be populated by JavaScript -->
+				</div>
+				<button id="ten-back-btn">Open More Lootboxes</button>
+			</div>
 		</div>
 	`;
 }
@@ -139,7 +148,12 @@ function setupLootboxMessageHandler(): void {
 
 				case 'openTen':
 					verboseLogs && console.log("Handling 'openTen' message");
-					return { error: 'Opening 10 lootboxes is not yet implemented' };
+					try {
+						const result = await openTenLootboxes();
+						return { result: result};
+					} catch (err) {
+						return { error: err.message || 'Failed to open lootbox' };
+					}
 
 				case 'refreshCount':
 					verboseLogs && console.log("Handling 'refreshCount' message");

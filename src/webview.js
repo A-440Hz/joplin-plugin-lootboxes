@@ -2,6 +2,7 @@
 	var currentState = 'inventory';
 	var currentResult = null;
 	var isPreloaded = false;
+	var cdnDomain = 'https://raw.githubusercontent.com/A-440Hz/squids/main/';
 
 	// DOM elements
 	var elements = {
@@ -22,6 +23,9 @@
 		colRarity: document.getElementById('col-rarity'),
 		colQuantity: document.getElementById('col-quantity'),
 		backBtn: document.getElementById('back-btn'),
+		tenResultsView: document.getElementById('ten-results-view'),
+		tenResultsGrid: document.getElementById('ten-results-grid'),
+		tenBackBtn: document.getElementById('ten-back-btn'),
 		errorMessage: document.getElementById('error-message')
 	};
 
@@ -85,7 +89,9 @@
 		webviewApi.postMessage({ message: 'openTen' })
 			.then(function(response) {
 				console.log('Received openTen response:', response);
-				if (response && response.error) {
+				if (response && response.result) {
+					displayTenResults(response.result);
+				} else if (response && response.error) {
 					showError(response.error);
 				}
 			})
@@ -96,6 +102,10 @@
 	});
 
 	elements.backBtn.addEventListener('click', function() {
+		returnToInventory();
+	});
+
+	elements.tenBackBtn.addEventListener('click', function() {
 		returnToInventory();
 	});
 
@@ -135,8 +145,7 @@
 
 		elements.preloadSpinner.style.display = 'flex';
 
-		var cdnUrl = 'https://raw.githubusercontent.com/A-440Hz/squids/main/';
-		var mediaUrl = cdnUrl + collectable.Filename;
+		var mediaUrl = cdnDomain + collectable.Filename;
 
 		if (collectable.Type === 'image') {
 			var img = new Image();
@@ -191,37 +200,94 @@
 		}, 600);
 	}
 
+	/**
+	 * Creates a media element (img or video) for a collectable
+	 */
+	function createMediaElement(collectable, mediaUrl, useExistingElements) {
+		var mediaElement;
+		if (collectable.Type === 'image') {
+			if (useExistingElements) {
+				mediaElement = elements.collectableImage;
+				mediaElement.src = mediaUrl;
+				mediaElement.style.display = 'block';
+				elements.collectableVideo.style.display = 'none';
+			} else {
+				mediaElement = document.createElement('img');
+				mediaElement.src = mediaUrl;
+				mediaElement.alt = collectable.Name;
+			}
+		} else {
+			if (useExistingElements) {
+				mediaElement = elements.collectableVideo;
+				mediaElement.src = mediaUrl;
+				mediaElement.style.display = 'block';
+				elements.collectableImage.style.display = 'none';
+			} else {
+				mediaElement = document.createElement('video');
+				mediaElement.src = mediaUrl;
+				mediaElement.autoplay = true;
+				mediaElement.loop = true;
+				mediaElement.muted = true;
+				mediaElement.setAttribute('playsinline', '');
+			}
+		}
+		return mediaElement;
+	}
+
+	/**
+	 * Creates a collectable display element (grid item or large display)
+	 */
+	function createCollectableElement(collectable, quantity, displayMode, clickable) {
+		var mediaUrl = cdnDomain + collectable.Filename;
+
+		if (displayMode === 'grid') {
+			// Grid item (compact)
+			var container = document.createElement('div');
+			container.className = 'grid-item';
+
+			// Media
+			var mediaElement = createMediaElement(collectable, mediaUrl, false);
+			container.appendChild(mediaElement);
+
+			// Name
+			var nameDiv = document.createElement('div');
+			nameDiv.className = 'grid-item-name';
+			nameDiv.textContent = formatName(collectable.Name);
+			container.appendChild(nameDiv);
+
+			// Rarity
+			var rarityDiv = document.createElement('div');
+			rarityDiv.className = 'grid-item-rarity ' + getRarityClass(collectable.Value);
+			rarityDiv.textContent = getRarityName(collectable.Value);
+			container.appendChild(rarityDiv);
+
+			// Add click handler if clickable
+			if (clickable) {
+				container.style.cursor = 'pointer';
+				container.addEventListener('click', function() {
+					magnifyCollectable(collectable);
+				});
+			}
+
+			return container;
+		}
+		// 'large' mode uses existing DOM elements, so we just update them
+		return null;
+	}
+
 	function displayResult() {
 		if (!currentResult || !currentResult.col) return;
 
 		var collectable = currentResult.col.Collectable;
 		var quantity = currentResult.col.Quantity;
+		var mediaUrl = cdnDomain + collectable.Filename;
 
-		var cdnUrl = 'https://raw.githubusercontent.com/A-440Hz/squids/main/';
-		var mediaUrl = cdnUrl + collectable.Filename;
-
-		// Show appropriate media type and add click handler for magnification
-		if (collectable.Type === 'image') {
-			elements.collectableImage.src = mediaUrl;
-			elements.collectableImage.style.display = 'block';
-			elements.collectableImage.style.cursor = 'pointer';
-			elements.collectableVideo.style.display = 'none';
-
-			// Remove old listener if any, then add new one
-			elements.collectableImage.onclick = function() {
-				magnifyCollectable(collectable);
-			};
-		} else {
-			elements.collectableVideo.src = mediaUrl;
-			elements.collectableVideo.style.display = 'block';
-			elements.collectableVideo.style.cursor = 'pointer';
-			elements.collectableImage.style.display = 'none';
-
-			// Remove old listener if any, then add new one
-			elements.collectableVideo.onclick = function() {
-				magnifyCollectable(collectable);
-			};
-		}
+		// Update media using existing DOM elements
+		var mediaElement = createMediaElement(collectable, mediaUrl, true);
+		mediaElement.style.cursor = 'pointer';
+		mediaElement.onclick = function() {
+			magnifyCollectable(collectable);
+		};
 
 		// Update info
 		var formattedName = formatName(collectable.Name);
@@ -249,15 +315,44 @@
 		});
 	}
 
+	function displayTenResults(results) {
+		console.log('Displaying ten results:', results);
+		currentState = 'ten-results';
+
+		// Clear the grid
+		elements.tenResultsGrid.innerHTML = '';
+
+		// Populate grid with results using unified element creator
+		for (var i = 0; i < results.length; i++) {
+			var result = results[i];
+			var collectable = result.col.Collectable;
+			var quantity = result.col.Quantity;
+
+			var gridItem = createCollectableElement(collectable, quantity, 'grid', true);
+			elements.tenResultsGrid.appendChild(gridItem);
+		}
+
+		showState('ten-results');
+	}
+
 	function showState(state) {
 		if (state === 'inventory') {
 			elements.inventoryView.style.display = 'block';
 			elements.animationContainer.style.display = 'none';
+			elements.tenResultsView.style.display = 'none';
+			return;
+		}
+
+		if (state === 'ten-results') {
+			elements.inventoryView.style.display = 'none';
+			elements.animationContainer.style.display = 'none';
+			elements.tenResultsView.style.display = 'block';
 			return;
 		}
 
 		elements.inventoryView.style.display = 'none';
 		elements.animationContainer.style.display = 'flex';
+		elements.tenResultsView.style.display = 'none';
 
 		elements.stateWaiting.style.display = 'none';
 		elements.stateReady.style.display = 'none';
