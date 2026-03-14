@@ -28,6 +28,20 @@ export async function registerSettings() {
     })
 
     await joplin.settings.registerSettings({
+        [model.showToolbarIcon]: {
+            value: true,
+            type: SettingItemType.Bool,
+            section: model.SECTION,
+            public: true,
+            label: "Show the 'toggle lootbox panel' button in the toolbar",
+            description: '(applies on restart)',
+            storage: SettingStorage.Database,
+        },
+    }).then(() => {
+        console.info('Registered showToolbarIcon setting: ', joplin.settings.value(model.showToolbarIcon));
+    })
+
+    await joplin.settings.registerSettings({
         [model.numLootboxesEarned]: {
             value: 0,
             type: SettingItemType.Int,
