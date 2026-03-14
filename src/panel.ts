@@ -66,6 +66,7 @@ function getLootboxHtmlBody(): string {
 				<div class="lootbox-buttons">
 					<button id="open-one-btn" disabled>Open 1</button>
 					<button id="open-ten-btn" disabled>Open 10</button>
+					<button id="view-collection-btn">View Collection</button>
 				</div>
 				<div id="error-message"></div>
 			</div>
@@ -119,6 +120,16 @@ function getLootboxHtmlBody(): string {
 				</div>
 				<button id="ten-back-btn">Open More Lootboxes</button>
 			</div>
+
+			<!-- Collectables Inventory View (hidden by default) -->
+			<div id="collectables-view" style="display: none;">
+				<div class="collectables-header">
+					<button id="collectables-back-btn">← Back</button>
+					<h3>Opened Lootboxes</h3>
+					<button id="sort-order-btn" title="Toggle sort order">ID ↑</button>
+				</div>
+				<div id="collectables-grid"></div>
+			</div>
 		</div>
 	`;
 }
@@ -165,7 +176,17 @@ function setupLootboxMessageHandler(): void {
 					await showMagnifiedDialog(message.collectable);
 					return { success: true };
 
-				default:
+				case 'getInventory':
+					verboseLogs && console.log("Handling 'getInventory' message");
+					try {
+						const inventoryData = await joplin.settings.value(model.earnedLootboxesKey);
+						const collectablesMapData = await joplin.settings.value(model.mapStorageKey);
+						return { inventory: inventoryData || {}, collectablesMap: collectablesMapData || {} };
+					} catch (err) {
+						return { error: err.message || 'Failed to retrieve inventory' };
+					}
+
+			default:
 					console.warn("Unknown message type:", message.message);
 					return { error: 'Unknown message type' };
 			}

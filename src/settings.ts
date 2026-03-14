@@ -6,8 +6,8 @@ import { fallbackMap } from "./util";
 
 export async function registerSettings() {
     await joplin.settings.registerSection(model.SECTION, {
-        label: "Todo Lootbox Settings",
-        iconName: "fas fa-th", //fa-cubes also looks good
+        label: "Lootbox",
+        iconName: "fas fa-cubes",
     }).then(() => {
         console.info('Registered settings section: ', model.SECTION);
     });
@@ -25,6 +25,34 @@ export async function registerSettings() {
         },
     }).then(() => {
         console.info('Registered numTodosToEarnLootbox setting: ', joplin.settings.value(model.numTodosToEarnLootbox));
+    })
+
+    await joplin.settings.registerSettings({
+        [model.showToolbarIcon]: {
+            value: true,
+            type: SettingItemType.Bool,
+            section: model.SECTION,
+            public: true,
+            label: "Show the 'toggle lootbox panel' button in the toolbar",
+            description: '(applies on restart)',
+            storage: SettingStorage.Database,
+        },
+    }).then(() => {
+        console.info('Registered showToolbarIcon setting: ', joplin.settings.value(model.showToolbarIcon));
+    })
+
+    await joplin.settings.registerSettings({
+        [model.panelAlwaysStartsClosed]: {
+            value: false,
+            type: SettingItemType.Bool,
+            section: model.SECTION,
+            public: true,
+            label: "Always hide panel when joplin opens",
+            description: '(applies on restart)',
+            storage: SettingStorage.Database,
+        },
+    }).then(() => {
+        console.info('Registered panelAlwaysStartsClosed setting: ', joplin.settings.value(model.panelAlwaysStartsClosed));
     })
 
     await joplin.settings.registerSettings({

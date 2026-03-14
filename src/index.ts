@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { ToolbarButtonLocation } from 'api/types';
+import { MenuItemLocation, ToolbarButtonLocation } from 'api/types';
 import { model, refreshLootboxCount, handleSettingsChange } from './model';
 import { registerSettings } from './settings';
 import { initCacheMap, openOneLootbox } from './lootbox';
@@ -21,7 +21,10 @@ joplin.plugins.register({
 		await initCacheMap();
 
 		// create lootbox panel
-		const lootboxPanelHandle = await createLootboxPanel();
+		const lootboxPanel = await createLootboxPanel();
+		if (await joplin.settings.value(model.panelAlwaysStartsClosed) == true) {
+			await joplin.views.panels.hide(lootboxPanel);
+		}
 
 		// handle sync events
 		await joplin.workspace.onSyncStart(() => {
@@ -30,44 +33,29 @@ joplin.plugins.register({
 			initCacheMap();
 		});
 
-
-		await joplin.commands.register({
-			name: 'checkValues',
-			label: 'Check custom setting values',
-			iconName: 'fas fa-music',
-			execute: async () => {
-				const numLootboxesEarned = await joplin.settings.value(model.numLootboxesEarned);
-				const numTodosToEarnLootbox = await joplin.settings.value(model.numTodosToEarnLootbox);
-				console.info('Current values (numLootboxesEarned, numTodosToEarnLootbox): ', { numLootboxesEarned, numTodosToEarnLootbox });
-			},
-		});
-		await joplin.views.toolbarButtons.create('checkValuesButton', 'checkValues', ToolbarButtonLocation.NoteToolbar);
-
-		await joplin.commands.register({
-			name: 'refreshLootboxCount',
-			label: 'Refresh Lootbox Count',
-			iconName: 'fas fa-drum',
-			execute: async () => {
-				await refreshLootboxCount();
-				const value = await joplin.settings.value(model.numLootboxesEarned);
-				console.info('Current value is: ' + value);
-				await updateLootboxPanelCount();
-			},
-		});
-		await joplin.views.toolbarButtons.create('refreshLootboxCountButton', 'refreshLootboxCount', ToolbarButtonLocation.NoteToolbar);
-
+		// create toolbar icon to open panel
 		await joplin.commands.register({
 			name: 'toggleLootboxPanel',
 			label: 'Toggle Lootbox Panel',
 			iconName: 'fas fa-cubes',
 			execute: async () => {
-				const isOpen = (await joplin.views.panels.visible(lootboxPanelHandle)).valueOf()
+				const isOpen = (await joplin.views.panels.visible(lootboxPanel)).valueOf()
 				await refreshLootboxCount()
 				await updateLootboxPanelCount()
 				verboseLogs && console.log("count: ", await joplin.settings.value(model.numLootboxesEarned))
-				await joplin.views.panels.show(lootboxPanelHandle, !isOpen);				
+				await joplin.views.panels.show(lootboxPanel, !isOpen);				
 			},
 		});
-		await joplin.views.toolbarButtons.create('toggleLootboxPanelButton', 'toggleLootboxPanel', ToolbarButtonLocation.NoteToolbar);
+		if (await joplin.settings.value(model.showToolbarIcon) === true) {
+			await joplin.views.toolbarButtons.create('toggleLootboxPanelButton', 'toggleLootboxPanel', ToolbarButtonLocation.NoteToolbar);
+		}
+	
+		//create keyboard shortcut to open panel
+		await joplin.views.menuItems.create(
+			'toggleLootboxPanel.menuItem',
+			'toggleLootboxPanel',
+			MenuItemLocation.View,
+			{ accelerator: 'CmdOrCtrl+3' },
+		)
 	},
 });
