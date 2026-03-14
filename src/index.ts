@@ -30,32 +30,6 @@ joplin.plugins.register({
 			initCacheMap();
 		});
 
-
-		await joplin.commands.register({
-			name: 'checkValues',
-			label: 'Check custom setting values',
-			iconName: 'fas fa-music',
-			execute: async () => {
-				const numLootboxesEarned = await joplin.settings.value(model.numLootboxesEarned);
-				const numTodosToEarnLootbox = await joplin.settings.value(model.numTodosToEarnLootbox);
-				console.info('Current values (numLootboxesEarned, numTodosToEarnLootbox): ', { numLootboxesEarned, numTodosToEarnLootbox });
-			},
-		});
-		await joplin.views.toolbarButtons.create('checkValuesButton', 'checkValues', ToolbarButtonLocation.NoteToolbar);
-
-		await joplin.commands.register({
-			name: 'refreshLootboxCount',
-			label: 'Refresh Lootbox Count',
-			iconName: 'fas fa-drum',
-			execute: async () => {
-				await refreshLootboxCount();
-				const value = await joplin.settings.value(model.numLootboxesEarned);
-				console.info('Current value is: ' + value);
-				await updateLootboxPanelCount();
-			},
-		});
-		await joplin.views.toolbarButtons.create('refreshLootboxCountButton', 'refreshLootboxCount', ToolbarButtonLocation.NoteToolbar);
-
 		await joplin.commands.register({
 			name: 'toggleLootboxPanel',
 			label: 'Toggle Lootbox Panel',

@@ -5,6 +5,8 @@
 	var preloadedGridItems = [];
 	var isPreloaded = false;
 	var openMode = 'one'; // 'one' or 'ten'
+	var recentlyOpenedIds = []; // IDs opened this session; drives "new" badges
+	var collectionSortAsc = true;
 	var cdnDomain = 'https://raw.githubusercontent.com/A-440Hz/squids/main/';
 	var mediaPlaceholder = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="%23999"><rect width="24" height="24" fill="%23f5f5f5"/><text x="12" y="12" text-anchor="middle" dy=".3em" fill="%23999">?</text></svg>';
 
@@ -32,7 +34,12 @@
 		tenResultsView: document.getElementById('ten-results-view'),
 		tenResultsGrid: document.getElementById('ten-results-grid'),
 		tenBackBtn: document.getElementById('ten-back-btn'),
-		errorMessage: document.getElementById('error-message')
+		errorMessage: document.getElementById('error-message'),
+		collectablesView: document.getElementById('collectables-view'),
+		collectablesGrid: document.getElementById('collectables-grid'),
+		collectablesBackBtn: document.getElementById('collectables-back-btn'),
+		sortOrderBtn: document.getElementById('sort-order-btn'),
+		viewCollectionBtn: document.getElementById('view-collection-btn')
 	};
 
 	// Initialize - request initial count
@@ -115,6 +122,22 @@
 		returnToInventory();
 	});
 
+	elements.viewCollectionBtn.addEventListener('click', function() {
+		showCollectablesView();
+	});
+
+	elements.collectablesBackBtn.addEventListener('click', function() {
+		returnToInventory();
+	});
+
+	elements.sortOrderBtn.addEventListener('click', function() {
+		collectionSortAsc = !collectionSortAsc;
+		elements.sortOrderBtn.textContent = collectionSortAsc ? 'ID ↑' : 'ID ↓';
+		if (currentState === 'collectables') {
+			showCollectablesView();
+		}
+	});
+
 	// Animation state click handlers
 	elements.stateReady.addEventListener('click', function() {
 		if (currentState === 'ready' && isPreloaded) {
@@ -152,6 +175,15 @@
 		isPreloaded = false;
 		openMode = 'one';
 
+		// Track newly opened ID for "new" badge in collection view
+		var col = result && result.col && result.col.Collectable;
+		if (col) {
+			var newId = getLootboxIdFromFilename(col.Filename);
+			if (newId && recentlyOpenedIds.indexOf(newId) === -1) {
+				recentlyOpenedIds.push(newId);
+			}
+		}
+
 		configureWaitingState('Preparing your lootbox...');
 		showState('waiting');
 		preloadCollectable(result);
@@ -163,6 +195,19 @@
 		currentState = 'waiting';
 		isPreloaded = false;
 		openMode = 'ten';
+
+		// Track newly opened IDs for "new" badges in collection view
+		if (results) {
+			for (var i = 0; i < results.length; i++) {
+				var col = results[i] && results[i].col && results[i].col.Collectable;
+				if (col) {
+					var newId = getLootboxIdFromFilename(col.Filename);
+					if (newId && recentlyOpenedIds.indexOf(newId) === -1) {
+						recentlyOpenedIds.push(newId);
+					}
+				}
+			}
+		}
 
 		configureWaitingState('Preparing your lootboxes...');
 		showState('waiting');
@@ -465,6 +510,7 @@
 			elements.inventoryView.style.display = 'block';
 			elements.animationContainer.style.display = 'none';
 			elements.tenResultsView.style.display = 'none';
+			elements.collectablesView.style.display = 'none';
 			return;
 		}
 
@@ -472,12 +518,23 @@
 			elements.inventoryView.style.display = 'none';
 			elements.animationContainer.style.display = 'none';
 			elements.tenResultsView.style.display = 'block';
+			elements.collectablesView.style.display = 'none';
 			return;
 		}
 
+		if (state === 'collectables') {
+			elements.inventoryView.style.display = 'none';
+			elements.animationContainer.style.display = 'none';
+			elements.tenResultsView.style.display = 'none';
+			elements.collectablesView.style.display = 'block';
+			return;
+		}
+
+		// most states share common 'single lootbox animation' display settings
 		elements.inventoryView.style.display = 'none';
 		elements.animationContainer.style.display = 'flex';
 		elements.tenResultsView.style.display = 'none';
+		elements.collectablesView.style.display = 'none';
 
 		elements.stateWaiting.style.display = 'none';
 		elements.stateReady.style.display = 'none';
@@ -546,5 +603,138 @@
 	function getRarityClass(value) {
 		var map = { C: 'rarity-common', B: 'rarity-rare', A: 'rarity-epic', S: 'rarity-legendary' };
 		return map[value] || '';
+	}
+
+	function getLootboxIdFromFilename(filename) {
+		var match = filename && filename.match(/^(\d+)-/);
+		return match ? match[1] : null;
+	}
+
+	function createInventoryGridItem(id, collectable, quantity) {
+		var container = document.createElement('div');
+		container.className = 'grid-item';
+		container.style.cursor = 'pointer';
+
+		var mediaUrl = cdnDomain + collectable.Filename;
+
+		// "New" badge - disappears on hover
+		if (recentlyOpenedIds.indexOf(id) !== -1) {
+			var badge = document.createElement('div');
+			badge.className = 'new-badge';
+			badge.textContent = 'NEW';
+			container.appendChild(badge);
+
+			container.addEventListener('mouseenter', function() {
+				var idx = recentlyOpenedIds.indexOf(id);
+				if (idx !== -1) {
+					recentlyOpenedIds.splice(idx, 1);
+				}
+				var b = container.querySelector('.new-badge');
+				if (b) b.remove();
+			});
+		}
+
+		// Create media element without autoplay
+		var mediaElement;
+		if (collectable.Type === 'image') {
+			mediaElement = document.createElement('img');
+			mediaElement.src = mediaUrl;
+			mediaElement.alt = collectable.Name;
+			mediaElement.onerror = function() {
+				mediaElement.src = mediaPlaceholder;
+			};
+		} else {
+			mediaElement = document.createElement('video');
+			mediaElement.src = mediaUrl;
+			mediaElement.muted = true;
+			mediaElement.loop = true;
+			mediaElement.setAttribute('playsinline', '');
+			mediaElement.poster = mediaPlaceholder;
+
+			container.addEventListener('mouseenter', function() {
+				mediaElement.play().catch(function() {});
+			});
+			container.addEventListener('mouseleave', function() {
+				mediaElement.pause();
+				mediaElement.currentTime = 0;
+			});
+		}
+		container.appendChild(mediaElement);
+
+		// Name
+		var nameDiv = document.createElement('div');
+		nameDiv.className = 'grid-item-name';
+		nameDiv.textContent = formatName(collectable.Name);
+		container.appendChild(nameDiv);
+
+		// Rarity
+		var rarityDiv = document.createElement('div');
+		rarityDiv.className = 'grid-item-rarity ' + getRarityClass(collectable.Value);
+		rarityDiv.textContent = getRarityName(collectable.Value);
+		container.appendChild(rarityDiv);
+
+		// Quantity
+		var qtyDiv = document.createElement('div');
+		qtyDiv.className = 'grid-item-quantity';
+		qtyDiv.textContent = 'x' + quantity;
+		container.appendChild(qtyDiv);
+
+		// Click to magnify
+		container.addEventListener('click', function() {
+			magnifyCollectable(collectable);
+		});
+
+		return container;
+	}
+
+	function renderCollectablesGrid(inventory, collectablesMap) {
+		elements.collectablesGrid.innerHTML = '';
+
+		var ownedItems = [];
+		for (var id in inventory) {
+			if (!inventory.hasOwnProperty(id)) continue;
+			var qty = inventory[id];
+			if (qty <= 0) continue;
+			var col = collectablesMap[id];
+			if (!col) continue;
+			ownedItems.push({ id: id, collectable: col, quantity: qty });
+		}
+
+		if (ownedItems.length === 0) {
+			var emptyMsg = document.createElement('p');
+			emptyMsg.style.textAlign = 'center';
+			emptyMsg.style.color = 'var(--joplin-color-faded, #666)';
+			emptyMsg.textContent = 'No collectables yet. Open some lootboxes!';
+			elements.collectablesGrid.appendChild(emptyMsg);
+			return;
+		}
+
+		ownedItems.sort(function(a, b) {
+			var diff = parseInt(a.id, 10) - parseInt(b.id, 10);
+			return collectionSortAsc ? diff : -diff;
+		});
+
+		for (var i = 0; i < ownedItems.length; i++) {
+			var item = ownedItems[i];
+			var gridItem = createInventoryGridItem(item.id, item.collectable, item.quantity);
+			elements.collectablesGrid.appendChild(gridItem);
+		}
+	}
+
+	function showCollectablesView() {
+		currentState = 'collectables';
+		showState('collectables');
+
+		webviewApi.postMessage({ message: 'getInventory' })
+			.then(function(response) {
+				if (response && response.inventory && response.collectablesMap) {
+					renderCollectablesGrid(response.inventory, response.collectablesMap);
+				} else {
+					elements.collectablesGrid.innerHTML = '<p style="text-align:center; color: var(--joplin-color-faded, #666);">No lootboxes opened yet.</p>';
+				}
+			})
+			.catch(function(err) {
+				console.error('Error fetching inventory:', err);
+			});
 	}
 })();
