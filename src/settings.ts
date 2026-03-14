@@ -42,6 +42,20 @@ export async function registerSettings() {
     })
 
     await joplin.settings.registerSettings({
+        [model.panelAlwaysStartsClosed]: {
+            value: false,
+            type: SettingItemType.Bool,
+            section: model.SECTION,
+            public: true,
+            label: "Always hide panel when joplin opens",
+            description: '(applies on restart)',
+            storage: SettingStorage.Database,
+        },
+    }).then(() => {
+        console.info('Registered panelAlwaysStartsClosed setting: ', joplin.settings.value(model.panelAlwaysStartsClosed));
+    })
+
+    await joplin.settings.registerSettings({
         [model.numLootboxesEarned]: {
             value: 0,
             type: SettingItemType.Int,

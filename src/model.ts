@@ -8,6 +8,7 @@ export namespace model {
     export const mapStorageKey = 'collectablesMap'
     export const earnedLootboxesKey = 'earnedLootboxes';
     export const showToolbarIcon = 'showToolbarIcon';
+    export const panelAlwaysStartsClosed = 'alwaysStartsClosed';
 }
 const attributedKey = 'lootbox:attributed';
 

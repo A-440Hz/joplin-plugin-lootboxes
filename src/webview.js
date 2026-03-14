@@ -661,11 +661,23 @@
 		}
 		container.appendChild(mediaElement);
 
+		// Name and ID wrapper
+		var nameIdWrapper = document.createElement('div');
+		nameIdWrapper.className = 'grid-item-name-id-wrapper';
+
+		// ID
+		var idDiv = document.createElement('div');
+		idDiv.className = 'grid-item-id';
+		idDiv.textContent = `#${id}: `;
+		nameIdWrapper.appendChild(idDiv);
+
 		// Name
 		var nameDiv = document.createElement('div');
 		nameDiv.className = 'grid-item-name';
 		nameDiv.textContent = formatName(collectable.Name);
-		container.appendChild(nameDiv);
+		nameIdWrapper.appendChild(nameDiv);
+
+		container.appendChild(nameIdWrapper);
 
 		// Rarity
 		var rarityDiv = document.createElement('div');

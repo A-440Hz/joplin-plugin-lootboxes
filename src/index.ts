@@ -22,7 +22,9 @@ joplin.plugins.register({
 
 		// create lootbox panel
 		const lootboxPanel = await createLootboxPanel();
-		await joplin.views.panels.hide(lootboxPanel)
+		if (await joplin.settings.value(model.panelAlwaysStartsClosed) == true) {
+			await joplin.views.panels.hide(lootboxPanel);
+		}
 
 		// handle sync events
 		await joplin.workspace.onSyncStart(() => {
