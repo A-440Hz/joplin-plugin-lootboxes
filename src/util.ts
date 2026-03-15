@@ -1,6 +1,6 @@
 import { LootboxMap } from "./lootbox";
 
-export const verboseLogs = true; // TODO: can set this to some console value
+export const verboseLogs = false; // TODO: can set this to some console value
 
 export const fallbackMap: LootboxMap = {
     "1": {

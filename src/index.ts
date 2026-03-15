@@ -33,16 +33,21 @@ joplin.plugins.register({
 			initCacheMap();
 		});
 
+		await joplin.workspace.onSyncComplete(() => {
+			verboseLogs && console.info('Sync complete detected');
+			refreshLootboxCount();
+		})
+
 		// create toolbar icon to open panel
 		await joplin.commands.register({
 			name: 'toggleLootboxPanel',
 			label: 'Toggle Lootbox Panel',
 			iconName: 'fas fa-cubes',
 			execute: async () => {
-				const isOpen = (await joplin.views.panels.visible(lootboxPanel)).valueOf()
-				await refreshLootboxCount()
-				await updateLootboxPanelCount()
-				verboseLogs && console.log("count: ", await joplin.settings.value(model.numLootboxesEarned))
+				const isOpen = (await joplin.views.panels.visible(lootboxPanel)).valueOf();
+				await refreshLootboxCount();
+				await updateLootboxPanelCount();
+				verboseLogs && console.log("count: ", await joplin.settings.value(model.numLootboxesEarned));
 				await joplin.views.panels.show(lootboxPanel, !isOpen);				
 			},
 		});

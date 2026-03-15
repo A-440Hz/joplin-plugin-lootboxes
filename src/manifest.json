@@ -10,7 +10,15 @@
 	"repository_url": "https://github.com/A-440Hz/joplin-plugin-lootboxes.git",
 	"keywords": ["lootbox", "todo"],
 	"categories": ["appearance", "productivity"],
-	"screenshots": [],
-	"icons": {},
+	"screenshots": [
+		{
+			"src": "examples/open.png",
+			"label": "An example of opening a lootbox in this plugin."
+		}
+	],
+	"icons": {
+		"16": "icons/16.png",
+		"32": "icons/32.png"
+	},
 	"promo_tile": {}
 }
