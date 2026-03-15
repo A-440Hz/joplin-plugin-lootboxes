@@ -6,7 +6,7 @@ import { fallbackMap } from "./util";
 
 export async function registerSettings() {
     await joplin.settings.registerSection(model.SECTION, {
-        label: "Lootbox",
+        label: "Lootboxes",
         iconName: "fas fa-cubes",
     }).then(() => {
         console.info('Registered settings section: ', model.SECTION);

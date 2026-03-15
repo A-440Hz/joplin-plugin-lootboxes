@@ -8,7 +8,7 @@
 	"author": "Haotian Zeng",
 	"homepage_url": "",
 	"repository_url": "https://github.com/A-440Hz/joplin-plugin-lootboxes.git",
-	"keywords": ["lootbox", "todo"],
+	"keywords": ["lootbox", "lootboxes", "todo"],
 	"categories": ["appearance", "productivity"],
 	"screenshots": [
 		{
