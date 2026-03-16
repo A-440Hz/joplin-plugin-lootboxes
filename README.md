@@ -1,5 +1,7 @@
 # Lootboxes
 
+![downloads](https://img.shields.io/badge/dynamic/json?color=brightgreen&label=downloads&query=%24.totalDownloads&url=https%3A%2F%2Fjoplin-plugin-downloads.vercel.app%2Fapi%3Fplugin%3Djoplin-plugin-lootboxes)
+
 This [Joplin](https://joplinapp.org/) plugin provides a 'gamification' element for users who use to-do notes to track completion of tasks.
 
 This app relies on Joplin's inherent synchronization capabilities to maintain the user's earned inventory state and lootbox progress across devices. Joplin's media caching also allows the user to easily access and view the multiple media files of their earned lootboxes.
